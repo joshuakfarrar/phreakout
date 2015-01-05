@@ -1,69 +1,76 @@
-define(['jquery', 'app'], function($, App) {
-  var app, game;
+define(['jquery'], function($) {
+  var game;
 
   var initApp = function() {
     $(document).ready(function() {
-      app = new App();
-      app.center();
+      var main = {
+        preload: function() {
+          game.load.image('paddle', 'img/paddle.png');
+          game.load.image('ball', 'img/ball.png');
+          game.load.image('brick', 'img/brick.png');
+        },
 
-      initGame();
-    });
-  }
+        create: function() {
+          game.physics.startSystem(Phaser.Physics.ARCADE);
 
-  var initGame = function() {
-    require(['game'], function(Game) {
-      var canvas = document.getElementById("entities"),
-        background = document.getElementById("background"),
-        foreground = document.getElementById("foreground");
+          this.cursor = game.input.keyboard.createCursorKeys();
 
-      game = new Game(app);
-      game.setup(canvas, background, foreground);
+          this.paddle = game.add.sprite(200, 400, 'paddle');
+          game.physics.arcade.enable(this.paddle);
 
-      game.run();
+          this.paddle.body.immovable = true;
+          this.paddle.body.collideWorldBounds = true;
 
-      $('body').unbind('click');
-      $('body').click(function(event) {
-        if (game.started) {
-          game.click();
+          // Create a group that will contain all the bricks
+          this.bricks = game.add.group();
+          this.bricks.enableBody = true;
+
+          // Create the 16 bricks
+          for (var i = 0; i < 5; i++)
+            for (var j = 0; j < 5; j++)
+              game.add.sprite(55+i*60, 55+j*35, 'brick', 0, this.bricks);
+
+          // Make sure that the bricks won't move
+          this.bricks.setAll('body.immovable', true);
+
+          // Create the ball with physics
+          this.ball = game.add.sprite(200, 300, 'ball');
+          game.physics.arcade.enable(this.ball);
+
+          // Add velocity to the ball
+          this.ball.body.velocity.x = 200; 
+          this.ball.body.velocity.y = 200;
+
+          // Make the ball bouncy 
+          this.ball.body.collideWorldBounds = true;
+          this.ball.body.bounce.x = 1; 
+          this.ball.body.bounce.y = 1;
+        },
+
+        update: function() {
+          if (this.cursor.right.isDown) {
+            this.paddle.body.velocity.x = 350;
+          } else if (this.cursor.left.isDown) {
+            this.paddle.body.velocity.x = -350;
+          } else {
+            this.paddle.body.velocity.x = 0;
+          }
+
+          // Make the paddle and the ball collide
+          game.physics.arcade.collide(this.paddle, this.ball);
+
+          // Call the 'hit' function when the ball hit a brick
+          game.physics.arcade.collide(this.ball, this.bricks, this.hit, null, this);
+        },
+
+        hit: function(ball, brick) {
+          brick.kill();
         }
-      });
+      }
 
-      // $(document).bind("keydown", function(e) {
-      //   var key = e.which,
-
-      //   if($('#chatinput:focus').size() == 0 && $('#nameinput:focus').size() == 0) {
-      //     if(key === 13) { // Enter
-      //       if(game.ready) {
-      //         $chat.focus();
-      //         return false;
-      //       }
-      //     }
-      //     if(key === 32) { // Space
-      //       // game.togglePathingGrid();
-      //       return false;
-      //     }
-      //     if(key === 70) { // F
-      //       // game.toggleDebugInfo();
-      //       return false;
-      //     }
-      //     if(key === 27) { // ESC
-      //       app.hideWindows();
-      //       _.each(game.player.attackers, function(attacker) {
-      //         attacker.stop();
-      //       });
-      //       return false;
-      //     }
-      //     if(key === 65) { // a
-      //       // game.player.hit();
-      //       return false;
-      //     }
-      //   } else {
-      //     if(key === 13 && game.ready) {
-      //       $chat.focus();
-      //       return false;
-      //     }
-      //   }
-      // });
+      game = new Phaser.Game(400, 450, Phaser.AUTO, 'canvas');
+      game.state.add('main', main);
+      game.state.start('main');
     });
   }
 
