@@ -1,3 +1,3 @@
-define(['lib/class', 'lib/underscore-min', 'util'], function() {
+define(function() {
   require(["main"]);
 });
